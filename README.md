@@ -1,3 +1,3 @@
 # basestone
 
-各种软件的安全shell脚本
+各种软件的shell安装脚本
