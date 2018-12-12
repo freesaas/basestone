@@ -76,11 +76,11 @@ function init(){
     #for mysql5
     #GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'root'@'%' IDENTIFIED BY '123456'\""
     #for mysql8
-    CREATE_ROOT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"CREATE USER 'root'@'%' IDENTIFIED BY 'root'\""
+    CREATE_ROOT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"CREATE USER 'root'@'%' IDENTIFIED BY '123456'\""
     GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'root'@'%' WITH GRANT OPTION\""
     echo $CREATE_ROOT_CMD
     echo $GRANT_CMD
-    ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "CREATE USER 'root'@'%' IDENTIFIED BY 'root'"
+    ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "CREATE USER 'root'@'%' IDENTIFIED BY '123456'"
     ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION"
     echo "7.授权成功"
 
@@ -107,13 +107,18 @@ function init(){
     echo "9.测试成功"
 }
 
-function cmd(){
+function start(){
     ${workspace}/${MYSQL_NAME}/bin/mysqld --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf &
     echo "Start successfully!\r\n"
     echo "==Use command below to continue:"
     echo ${workspace}"/"${MYSQL_NAME}"/bin/mysql -uroot -p123456 --socket="${workspace}"/"${MYSQL_NAME}"/mysql.sock"
     echo "==Use command below to create database"
     echo "create database *** default character set utf8 collate utf8_general_ci"
+}
+
+# 其他情况
+function others(){
+  echo " Usage: clear|install|init|start "
 }
 
 case "$1" in
@@ -126,16 +131,9 @@ case "$1" in
   init)
     init
   ;;
-  all)
+  start)
     clear
-    install
-    init
-  ;;
-  cmd)
-    cmd
-  ;;
-  restart)
-    restart
+    start
   ;;
   *)
     others
