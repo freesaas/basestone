@@ -7,7 +7,6 @@ workspace=`pwd`
 ########################Properties End########################
 
 function clear(){
-    # 1.清理
     MYSQL_PID=`ps -e | grep mysqld | awk '{print $1}'`
     if [ -n "$MYSQL_PID" ]; then
       kill -9 $MYSQL_PID
@@ -18,7 +17,6 @@ function clear(){
 }
 
 function install(){
-    #2. 准备、下载软件
     echo "2.清空"
     rm -rf ${workspace}/${MYSQL_NAME}
     if [ ! -f "${MYSQL_NAME}.tar.gz" ] && [ ! -f "${MYSQL_NAME}.tar.xz" ] && [ ! -f "${MYSQL_NAME}.tar" ]; then
@@ -139,4 +137,3 @@ case "$1" in
     others
   ;;
 esac
-
