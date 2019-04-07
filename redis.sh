@@ -3,9 +3,10 @@
 #3/4/5
 VERSION=5
 WORKSPACE=`pwd`
-node=7000
+SINGLE_NODE=7000
+INSTALL_IP=192.168.9.52
 if [ $VERSION == 5 ]; then
-  VERSION_NAME=redis-5.0.3
+  VERSION_NAME=redis-5.0.4
 elif [ $VERSION == 3 ]; then
   VERSION_NAME=redis-3.2.3
 fi
@@ -13,7 +14,7 @@ fi
 function install(){
   if [ ! -f "${VERSION_NAME}.tar.gz" ]; then
     REDIS_URL=http://download.redis.io/releases/${VERSION_NAME}.tar.gz
-    curl -O ${REDIS_URL}
+    wget -O ${VERSION_NAME}.tar.gz ${REDIS_URL}
   fi
   rm -rf ${VERSION_NAME} redis-dist
 
@@ -29,7 +30,7 @@ function clusterinit(){
   do
     rm -rf redis-$node.conf nodes-$node.conf
     cp ${VERSION_NAME}/redis.conf redis-$node.conf
-    sed -i "s/bind 127.0.0.1/bind 192.168.9.52/g" redis-$node.conf
+    sed -i "s/bind 127.0.0.1/bind $INSTALL_IP/g" redis-$node.conf
     sed -i "s/6379/$node/g" redis-$node.conf
     sed -i "s/daemonize no/daemonize yes/g" redis-$node.conf
     sed -i "s/# cluster-enabled yes/cluster-enabled yes/g" redis-$node.conf
@@ -38,19 +39,25 @@ function clusterinit(){
 }
 
 function clusterstart(){
-  ps -e | grep redis | awk '{print $1}' | xargs kill -9
   command=""
   for node in {7001..7006}
   do
-    redis-dist/bin/redis-server redis-$node.conf &
-    command=${command}" 192.168.9.52:"${node}
+    redis-dist/bin/redis-server redis-$node.conf
+    command=${command}" $INSTALL_IP:"${node}
   done
   sleep 5
-  redis-dist/bin/redis-cli --cluster create ${command} --cluster-replicas 1
+  echo yes | redis-dist/bin/redis-cli --cluster create ${command} --cluster-replicas 1
 }
 
 function clusterstop(){
-  ps -e | grep redis | awk '{print $1}' | xargs kill -9
+  for node in {7001..7006}
+  do
+    redis-dist/bin/redis-cli -h $INSTALL_IP -p $node shutdown
+  done
+}
+
+function clusterclear(){
+  clusterstop
   rm -rf dump.rdb
   for node in {7001..7006}
   do
@@ -59,23 +66,32 @@ function clusterstop(){
 }
 
 function singleinit(){
-  
   rm -rf dump.rdb
-  rm -rf redis-$node.conf
-  cp ${VERSION_NAME}/redis.conf redis-$node.conf
-  sed -i "s/bind 127.0.0.1/bind 192.168.9.52/g" redis-$node.conf
-  sed -i "s/6379/$node/g" redis-$node.conf
-  sed -i "s/daemonize no/daemonize yes/g" redis-$node.conf
+  rm -rf redis-$SINGLE_NODE.conf
+  cp ${VERSION_NAME}/redis.conf redis-$SINGLE_NODE.conf
+  sed -i "s/bind 127.0.0.1/bind $INSTALL_IP/g" redis-$SINGLE_NODE.conf
+  sed -i "s/6379/$SINGLE_NODE/g" redis-$SINGLE_NODE.conf
+  sed -i "s/daemonize no/daemonize yes/g" redis-$SINGLE_NODE.conf
 }
 
 function singlestart(){
-  redis-dist/bin/redis-server redis-$node.conf &
+  redis-dist/bin/redis-server redis-$SINGLE_NODE.conf &
+}
+
+function singlestop(){
+  redis-dist/bin/redis-cli -h $INSTALL_IP -p $SINGLE_NODE shutdown
+}
+
+function singleclear(){
+  singlestop
+  rm -rf dump.rdb
+  rm -rf redis-$SINGLE_NODE.conf nodes-$SINGLE_NODE.conf
 }
 
 # 其他情况
 function others(){
-  echo " Usage: install|clusterinit|clusterstart|clusterstop "
-  echo "        singleinit|singlestart|singlestop "
+  echo " Usage: install|clusterinit|clusterstart|clusterstop|clusterclear "
+  echo "        singleinit|singlestart|singlestop|singleclear "
 }
 
 case "$1" in
@@ -91,6 +107,9 @@ case "$1" in
   clusterstop)
     clusterstop
   ;;
+  clusterclear)
+    clusterclear
+  ;;
   singleinit)
     singleinit
   ;;
@@ -99,6 +118,9 @@ case "$1" in
   ;;
   singlestop)
     singlestop
+  ;;
+  singleclear)
+    singleclear
   ;;
   *)
     others
