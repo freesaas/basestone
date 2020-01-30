@@ -2,7 +2,7 @@
 
 ########################Properties Begin########################
 #MYSQL_NAME=mysql-5.7.21-linux-glibc2.12-x86_64
-MYSQL_NAME=mysql-8.0.12-linux-glibc2.12-x86_64
+MYSQL_NAME=mysql-8.0.19-linux-glibc2.12-x86_64
 workspace=`pwd`
 ########################Properties End########################
 
