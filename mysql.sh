@@ -2,11 +2,12 @@
 
 ########################Properties Begin########################
 #MYSQL_NAME=mysql-5.7.21-linux-glibc2.12-x86_64
-MYSQL_NAME=mysql-8.0.19-linux-glibc2.12-x86_64
+#MYSQL_NAME=mysql-8.0.19-linux-glibc2.12-x86_64
+MYSQL_NAME=mysql-8.4.4-linux-glibc2.17-x86_64
 workspace=`pwd`
 ########################Properties End########################
 
-function clear(){
+function stop(){
     MYSQL_PID=`ps -e | grep mysqld | awk '{print $1}'`
     if [ -n "$MYSQL_PID" ]; then
       kill -9 $MYSQL_PID
@@ -20,7 +21,7 @@ function install(){
     echo "2.清空"
     rm -rf ${workspace}/${MYSQL_NAME}
     if [ ! -f "${MYSQL_NAME}.tar.gz" ] && [ ! -f "${MYSQL_NAME}.tar.xz" ] && [ ! -f "${MYSQL_NAME}.tar" ]; then
-      curl -O https://cdn.mysql.com//Downloads/MySQL-8.0/${MYSQL_NAME}.tar.xz
+      curl -O https://cdn.mysql.com//Downloads/MySQL-8.4/${MYSQL_NAME}.tar.xz
       echo "2.下载成功"
     else
       echo "2.已经存在，无需下载"
@@ -37,12 +38,13 @@ function install(){
       tar -zxf ${MYSQL_NAME}.tar.gz -C ${workspace}
     fi
     echo "3.解压成功！"
+    cp my.cnf ${workspace}/${MYSQL_NAME}
+    sed -i -e "s:workspace_path:${workspace}:g" -e "s/mysql_name/${MYSQL_NAME}/g" ${workspace}/${MYSQL_NAME}/my.cnf
+    echo "4.拷贝my.cnf，修改为实际配置"
 }
 
 function init(){
     # 4.初始化
-    cp my.cnf ${workspace}/${MYSQL_NAME}
-    sed -i -e "s:workspace_path:${workspace}:g" -e "s/mysql_name/${MYSQL_NAME}/g" ${workspace}/${MYSQL_NAME}/my.cnf
     INITIALIZE_CMD="${workspace}/${MYSQL_NAME}/bin/mysqld --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf --initialize-insecure"
     echo "4.开始初始化"
     echo $INITIALIZE_CMD
@@ -63,23 +65,23 @@ function init(){
     fi
 
     echo "6.修改密码"
-    PASSWD_CMD="${workspace}/${MYSQL_NAME}/bin/mysqladmin -uroot -p --socket=${workspace}/${MYSQL_NAME}/mysql.sock password 123456"
+    PASSWD_CMD="${workspace}/${MYSQL_NAME}/bin/mysqladmin --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p password 123456"
     echo $PASSWD_CMD
     #$PASSWD_CMD
-    ${workspace}/${MYSQL_NAME}/bin/mysqladmin -uroot -p --socket=${workspace}/${MYSQL_NAME}/mysql.sock password 123456
+    ${workspace}/${MYSQL_NAME}/bin/mysqladmin --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p password 123456
     echo "6.修改密码成功"
 
 
     echo "7.开始授权"
     #for mysql5
-    #GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'root'@'%' IDENTIFIED BY '123456'\""
+    #GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p123456 -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'mysql'@'%' IDENTIFIED BY '123456'\""
     #for mysql8
-    CREATE_ROOT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"CREATE USER 'root'@'%' IDENTIFIED BY '123456'\""
-    GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'root'@'%' WITH GRANT OPTION\""
+    CREATE_ROOT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p123456 -e \"CREATE USER 'mysql'@'%' IDENTIFIED BY '123456'\""
+    GRANT_CMD="${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p123456 -e \"GRANT ALL PRIVILEGES ON \*.\* TO 'mysql'@'%' WITH GRANT OPTION\""
     echo $CREATE_ROOT_CMD
     echo $GRANT_CMD
-    ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "CREATE USER 'root'@'%' IDENTIFIED BY '123456'"
-    ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION"
+    ${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p123456 -e "CREATE USER 'mysql'@'%' IDENTIFIED BY '123456'"
+    ${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -uroot -p123456 -e "GRANT ALL PRIVILEGES ON *.* TO 'mysql'@'%' WITH GRANT OPTION"
     echo "7.授权成功"
 
 
@@ -93,10 +95,10 @@ function init(){
 
 
     echo "9.开始测试"
-    VERSION_CMD="${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e \"SHOW VARIABLES WHERE Variable_name = 'version'\""
+    VERSION_CMD="${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -umysql -p123456 -e \"SHOW VARIABLES WHERE Variable_name = 'version'\""
     echo $VERSION_CMD
     #$VERSION_CMD
-    ${workspace}/${MYSQL_NAME}/bin/mysql -uroot -p123456 --socket=${workspace}/${MYSQL_NAME}/mysql.sock -e "SHOW VARIABLES WHERE Variable_name = 'version'"
+    ${workspace}/${MYSQL_NAME}/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -umysql -p123456 -e "SHOW VARIABLES WHERE Variable_name = 'version'"
 
     #PING_CMD="${workspace}/${MYSQL_NAME}/bin/mysqladmin --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf"
     #echo $PING_CMD
@@ -106,22 +108,27 @@ function init(){
 }
 
 function start(){
-    ${workspace}/${MYSQL_NAME}/bin/mysqld --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf &
-    echo "Start successfully!\r\n"
+    MYSQL_PID=`ps -e | grep mysqld | awk '{print $1}'`
+    if [ -n "$MYSQL_PID" ]; then
+      echo "1.MySQL已经启动，无需再次启动，进程号为："$MYSQL_PID
+    else
+      ${workspace}/${MYSQL_NAME}/bin/mysqld --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf &
+      echo "1.MySQL启动成功!\r\n"
+    fi
     echo "==Use command below to continue:"
-    echo ${workspace}"/"${MYSQL_NAME}"/bin/mysql -uroot -p123456 --socket="${workspace}"/"${MYSQL_NAME}"/mysql.sock"
+    echo ${workspace}"/"${MYSQL_NAME}"/bin/mysql --defaults-file=${workspace}/${MYSQL_NAME}/my.cnf -umysql -p123456"
     echo "==Use command below to create database"
     echo "create database *** default character set utf8 collate utf8_general_ci"
 }
 
 # 其他情况
 function others(){
-  echo " Usage: clear|install|init|start "
+  echo " Usage: stop|install|init|start "
 }
 
 case "$1" in
-  clear)
-    clear
+  stop)
+    stop
   ;;
   install)
     install
@@ -130,7 +137,6 @@ case "$1" in
     init
   ;;
   start)
-    clear
     start
   ;;
   *)
